@@ -24,6 +24,9 @@ TMPDIR=$(mktemp -d)
 BASE_URL="https://tvepg.eu/de/switzerland/c"
 IPTV_SOURCE="https://iptv-org.github.io/iptv/countries/ch.m3u"
 
+# Browser User-Agent (tvepg.eu blocks default curl/wget UAs)
+UA="Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"
+
 TODAY=$(date +%Y%m%d)
 YESTERDAY=$(date -d "yesterday" +%Y%m%d 2>/dev/null || date -v-1d +%Y%m%d)
 TOMORROW=$(date -d "tomorrow" +%Y%m%d 2>/dev/null || date -v+1d +%Y%m%d)
@@ -152,7 +155,14 @@ echo "========================================"
 # ── Discover all channel slugs ──────────────────────────────────────────────
 
 MAIN_HTML="$TMPDIR/main.html"
-curl -sf --max-time 30 "https://tvepg.eu/de/switzerland" -o "$MAIN_HTML"
+echo "Fetching channel index from tvepg.eu..."
+HTTP_CODE=$(curl -sS -o "$MAIN_HTML" -w "%{http_code}" -A "$UA" --max-time 30 "https://tvepg.eu/de/switzerland")
+if [ "$HTTP_CODE" != "200" ]; then
+  echo "ERROR: tvepg.eu returned HTTP $HTTP_CODE"
+  echo "Response body (first 500 chars):"
+  head -c 500 "$MAIN_HTML" 2>/dev/null || true
+  exit 1
+fi
 grep -oP 'href="/de/switzerland/c/\K[a-z0-9][a-z0-9-]*' "$MAIN_HTML" | sort -u > "$TMPDIR/slugs.txt"
 TOTAL_CHANNELS=$(wc -l < "$TMPDIR/slugs.txt")
 echo "Discovered $TOTAL_CHANNELS EPG channels on tvepg.eu"
@@ -174,7 +184,7 @@ PROGRAMMES="$TMPDIR/programmes.xml"
 
 while IFS= read -r slug; do
   CH_HTML="$TMPDIR/ch.html"
-  if ! curl -sf --max-time 15 "$BASE_URL/$slug" -o "$CH_HTML" 2>/dev/null; then
+  if ! curl -sf -A "$UA" --max-time 15 "$BASE_URL/$slug" -o "$CH_HTML" 2>/dev/null; then
     continue
   fi
 
