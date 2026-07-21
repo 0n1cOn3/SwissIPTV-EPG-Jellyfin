@@ -1,5 +1,10 @@
 # Swiss IPTV + EPG for Jellyfin
 
+> [!NOTE]
+> This is still in development and not ready to be used. It can be broken or not. :) 
+>
+> Developers: You know how to deal with, riiiiight ;) 
+
 Fully automated Swiss IPTV setup for Jellyfin. A GitHub Actions workflow runs twice daily, fetching free IPTV streams and scraping EPG (TV guide) data.
 
 ## Files
